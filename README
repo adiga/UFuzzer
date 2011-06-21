@@ -1,0 +1,29 @@
+********************************************
+UFuzzer is a linux system call fuzzing tool.
+********************************************
+
+This has been tested only on Ubuntu 10.10. It needs kernel code
+coverage to be turned on.
+
+To run:
+1) Kernel code coverage has to be turned on.
+        Note on turning on gcov-kernel for Ubuntu source 10.10:
+        Run “make menuconfig”.Navigate through “General Setup —>”,
+        “GCOV-based kernel profiling —>” and select “Enable
+        gcov-based kernel profiling” and “Profile entire kernel”
+        options. Save and exit, then build and install the kernel.
+        Also check: http://linuxtweaking.blogspot.com/2010/05/how-to-compile-kernel-on-ubuntu-1004.html
+
+2) Modify options in src/common-header.h
+3) make
+4) Run ufuzzer
+
+Caution: Running ufuzzer may damage your files. Safe to run it in a Linux
+guest OS on VM.
+
+ufuzzer crashes: Since it is still in development stage, ufuzzer may crash.
+Before running it again run clean.sh to clean the files and
+directories.
+
+Output: Code coverage data is stored in code_coverage.txt
+
