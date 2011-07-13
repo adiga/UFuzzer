@@ -1,6 +1,6 @@
 # Make file for ufuzzer project
 CC=gcc
-CFLAGS=-Wall
+CFLAGS=-Wall -g
 SOURCES=src/*.c src/lib/*.c
 EXECUTABLE=ufuzzer
 

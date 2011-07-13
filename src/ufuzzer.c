@@ -16,7 +16,8 @@ void init(void);
 void abrthandler(int sig, siginfo_t *info, void *uap);
 void segfaulthandler(int sig, siginfo_t *info, void *uap);
 void sighandler(int sig);
-void greedy_algorithm(int isbetter);
+void greedy_algorithm(unsigned int seed);
+void run_syscalls(int modify);
 void modify_syscalllist(void);
 void execute_syscalllist(void);
 void generate_syscalllist(void);
@@ -31,51 +32,17 @@ int main (int argc, char *argv[])
                 printf("Remove %s and run clean.sh then run again\n", COVERAGE_DATA);
                 exit(1);
         }
-        /*Set up for system fuzzing*/
+
+        /* Set up for system fuzzing*/
         init();  
+
         /* Initializing random generator */
         unsigned int seed = rand_init();
 
-        int fd = open(COVERAGE_DATA, O_RDWR | O_CREAT, 0755);
-        if(fd == -1) {
-                printf("ERROR: Could not open: %s\n", COVERAGE_DATA);
-                exit(1);
-        }
-        int j = 0, better = 0;
-        long curr_result = 0, prev_result = 0;
-        char databuf[sizeof(int) * 2 + sizeof(long) + 4] = {0};
-        //write seed
-        sprintf(databuf, "%u\n", seed);
-        write(fd, databuf, strlen(databuf)); 
-        for(j = 0; j < NUM_RUNS; j++){
-                if(CODE_COVERAGE){
-                        reset_coverage();
-                        better = curr_result > prev_result;
-                }
-                else{
-                        if(j)  better ^= 1;
-                }
-                if(better){
-                        prev_result = curr_result;
-                        greedy_algorithm(1);
-                }else{
-                        if(sigsetjmp(env,1)){
-                                printf("MEMORY CORRUPTION DETECTED. IGNORING...\n");
-                                force_clearaddresslist();
-                        }else{
-                                if(j > 0) clearaddresslist();
+        /* Greedy algorithm */
+        greedy_algorithm(seed);
 
-                        }
-                        greedy_algorithm(0);
-                }
-                if(CODE_COVERAGE) {
-                        curr_result = run_coverage();
-                        //write results
-                        sprintf(databuf, "%d,%d,%ld\n", j+1, better, curr_result);
-                        write(fd, databuf, strlen(databuf)); 
-                }
-        }
-        close(fd);
+        /* free_resources */
         free_resources();
 
         return 0;
@@ -115,7 +82,7 @@ void init(void){
 
         getcwd(pwd,(sizeof(pwd)/sizeof(pwd[0])));
         printf("Present working dir: %s\n",pwd);
-        
+
 
 }
 
@@ -199,16 +166,79 @@ long run_coverage(void){
         return value;
 }       
 
+/*
+ * Greedy algorithm: Makes decision based on 
+ * lcov code results.
+ * */
+void greedy_algorithm(unsigned int seed){
+
+        int fd = open(COVERAGE_DATA, O_RDWR | O_CREAT, 0755);
+        if(fd == -1) {
+                printf("ERROR: Could not open: %s\n", COVERAGE_DATA);
+                exit(1);
+        }
+
+        int better = 0;
+        long curr_result = 0, best_result = 0;
+        char databuf[sizeof(int) + sizeof(long) * 2 + 4] = {0};
+        //write seed
+        sprintf(databuf, "%u\n", seed);
+        write(fd, databuf, strlen(databuf)); 
+        //first run with new data generated
+        if(CODE_COVERAGE) reset_coverage();
+        run_syscalls(0);
+        if(CODE_COVERAGE) {
+                curr_result = run_coverage();
+                if(curr_result > best_result){
+                        copy_syscall_to_best();
+                        best_result = curr_result;
+                        printf("Best result: %ld\n", best_result);
+                        //write results
+                        sprintf(databuf, "%d,%ld,%ld\n", 0, curr_result, (curr_result > best_result)? curr_result: best_result);
+                        write(fd, databuf, strlen(databuf)); 
+                }
+        }
+        //subsequent runs with modified data       
+        int j = 0;
+        for(j = 0; j < NUM_RUNS - 1; j++){
+                if(CODE_COVERAGE){
+                        reset_coverage();
+                        better = curr_result > best_result;
+                }
+                else{
+                        if(j)  better ^= 1;
+                }
+                if(better){
+                        printf("Its better\n");
+                        best_result = curr_result;
+                        copy_syscall_to_best();
+                        run_syscalls(1);
+                }else{
+                        printf("Its not better\n");
+                        copy_best_to_syscall();
+                        run_syscalls(1);
+                }
+                if(CODE_COVERAGE) {
+                        curr_result = run_coverage();
+                        //write results
+                        sprintf(databuf, "%d,%ld,%ld\n", j+1, curr_result, (curr_result > best_result)? curr_result: best_result);
+                        write(fd, databuf, strlen(databuf)); 
+                }
+                printf("Best result: %ld\n", best_result);
+        }
+        close(fd);
+
+}
 
 /*
- * Greedy algorithm: 
- * if better makes a 5% change to existing data, else generates
- * a new set of data
- * isbetter: external input based on lcov results 
+ * run_syscalls: 
+ * if modify is 1 tweaks existing data, else generates
+ * a new set of data. Then executes the syscalls
+ * modify: external input based on lcov results 
  * */
-void greedy_algorithm(int isbetter){
+void run_syscalls(int modify){
 
-        if(isbetter){
+        if(modify){
                 modify_syscalllist();          
         }else{
                 generate_syscalllist();
@@ -298,7 +328,7 @@ void execute_syscalllist(void){
                 //get a syscall
                 data = (syscalldata *)getsyscall(i);
                 //execute
-                //printf("SYSCALL: %d\n", data->number);
+                //printf("SYSCALL %d: %d, %lu, %lu, %lu, %lu, %lu, %lu, %lu\n", i, data->number, data->args[0],data->args[1],data->args[2],data->args[3],data->args[4],data->args[5],data->args[6]);
                 ret = syscall(data->number, data->args[0],data->args[1],
                                 data->args[2],data->args[3],data->args[4],
                                 data->args[5],data->args[6]);

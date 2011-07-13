@@ -13,11 +13,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-/******* Changes the below options as requires *****/
+/******* Changes the below options as required *****/
 #define DEBUG 0 // 1 - TURN ON DEBUG MODE, 0 - TURN ON ALL FEATURES
 #define CODE_COVERAGE 1 //CODE COVERAGE: 1 - ON , 0 - 0FF
 #define NUM_RANDCALLS 10000 //Number of random calls 
-#define NUM_RUNS 35 //Number of runs of random calls
+#define NUM_RUNS 1000 //Number of runs of random calls
 //#define OLDER_LINUX  //uncomment this if compilation problem encountered
 
 /****** Changes the options below this if you understand the impact of changes *****/

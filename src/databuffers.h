@@ -1,5 +1,6 @@
 #include "lib/linkedlist.h"
 void free_resources(void);
+void clearsyscall(void);
 
 int getnfd(void);
 void addfd(int fd, char type);
@@ -18,3 +19,6 @@ void force_clearaddresslist(void);
 linkedlist *getsyscalllist();
 void addsyscall(syscalldata *data, int size);
 syscalldata *getsyscall(int nodenum);
+
+void copy_syscall_to_best(void);
+void copy_best_to_syscall(void);

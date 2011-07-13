@@ -9,7 +9,7 @@
 void delete_files(void);
 
 static linkedlist *fd_list = NULL, *dfd_list = NULL, *pfd_list = NULL, *zfd_list = NULL, *file_list = NULL,
-                  *syscall_list = NULL, *address_list = NULL;
+                  *syscall_list = NULL,*best_syscall_list = NULL,  *address_list = NULL;
 static int nfd = 0, ndfd = 0, npfd = 0, nzfd = 0, nfiles = 0, nsyscalls = 0, naddrs = 0;
 
 
@@ -19,11 +19,17 @@ void free_resources(void){
 
         clearfdlist();
         clearaddresslist();
+        clearsyscall();
+        clearlist(&best_syscall_list);
         delete_files();
         xprintmem();
 
 }
+void clearsyscall(void){
+        clearlist(&syscall_list);
+        nsyscalls = 0;
 
+}
 
 /* get number of open files*/
 int getnfd(void){
@@ -218,8 +224,6 @@ void *getaddress(void){
 void clearaddresslist(void){
         clearlist(&address_list);
         naddrs = 0;
-        clearlist(&syscall_list);
-        nsyscalls = 0;
 }
 
 /*forcefully free each address*/
@@ -263,3 +267,24 @@ syscalldata *getsyscall(int nodenum){
 
 }
 
+/*Copy syscall list to best syscall list*/
+void copy_syscall_to_best(void){
+        if(best_syscall_list != NULL)  clearlist(&best_syscall_list);
+        int i = 0;
+        for(i = NUM_RANDCALLS; i > 0; i--){
+                syscalldata *data = (syscalldata *)getnodedata(&syscall_list, i);
+                assert(data != NULL);
+                addnode(&best_syscall_list, data,sizeof(syscalldata));
+        }
+}
+
+/*Copy best syscall to syscall list*/
+void copy_best_to_syscall(void){
+        if(syscall_list != NULL) clearlist(&syscall_list);
+        int i = 0;
+        for(i = NUM_RANDCALLS; i > 0; i--){
+                syscalldata *data = (syscalldata *)getnodedata(&best_syscall_list, i);
+                assert(data != NULL);
+                addnode(&syscall_list, data,sizeof(syscalldata));
+        }
+}

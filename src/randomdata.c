@@ -175,11 +175,10 @@ unsigned long rand_bitflip(unsigned long data){
                 for(i = 0; i < nbits; i++){
                         data ^= (1 << rand_gen(2));
                 }
-                /*
                 //TODO - only fd should not be 0 or 1 or 2
                 while((data == 0 )|| (data == 1) ||(data == 2)){
-                        data = rand_gen(RANDOM_MAX);
-                }*/
+                        data = rand_gen(50);
+                }
                 return data;
         }
 }

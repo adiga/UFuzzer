@@ -40,9 +40,9 @@ void mysyscall(int number, ...){
         /*bit flip 5% of times*/
         /*SYS_pipe2 ignored to avoid blocking*/
 #ifndef OLDER_LINUX 
-             if((DEBUG == 0) &&  (rand_gen(20) < 1) && (number != SYS_pipe2)){
+             if((DEBUG == 0) &&  (rand_gen(50) < 1) && (number != SYS_pipe2)){
 #else
-        if((DEBUG == 0) && (rand_gen(20) < 1)){
+        if((DEBUG == 0) && (rand_gen(50) < 1)){
 #endif
                 int num_args = rand_gen(MAX_SYSCALL_ARGS);
                 int it = 0;
